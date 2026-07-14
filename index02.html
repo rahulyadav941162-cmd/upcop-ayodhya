@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        // Check session authorization before rendering
+        if (sessionStorage.getItem('loggedIn') !== 'true') {
+            window.location.replace('index.html');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayodhya District CCTNS Pending Applications Dashboard</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.3);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #8b5cf6;
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 2rem;
+        }
+
+        .header-title h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .district-badge {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            padding: 0.5rem 1.25rem;
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            text-transform: uppercase;
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: var(--glass-blur);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+
+        .metric-card.total::before {
+            background: var(--primary);
+        }
+
+        .metric-card.defaulter::before {
+            background: var(--danger);
+        }
+
+        .metric-card.warning::before {
+            background: var(--warning);
+        }
+
+        .metric-card.within::before {
+            background: var(--success);
+        }
+
+        .metric-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 1.5rem;
+            font-size: 2rem;
+            opacity: 0.15;
+            color: var(--text-main);
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .metric-subtext {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Dashboard View Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header h3 {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Charts styling */
+        .chart-container {
+            position: relative;
+            min-height: 320px;
+            width: 100%;
+        }
+
+        /* Leaderboard Table */
+        .leaderboard-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem;
+            border-bottom: 1px solid var(--card-border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        .ps-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .count-badge {
+            display: inline-block;
+            min-width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .count-badge.zero {
+            color: var(--text-muted);
+            opacity: 0.3;
+        }
+
+        .count-badge.has-items {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+        }
+
+        .count-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .count-badge.danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .status-pill {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-pill.high {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .status-pill.medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .status-pill.low {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        /* Filter Panel */
+        .filter-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+            gap: 1.25rem;
+            align-items: flex-end;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        @media (max-width: 768px) {
+            .filter-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-control {
+            background: #181d28;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+            width: 100%;
+        }
+
+        .filter-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-action {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            height: 44px;
+        }
+
+        .btn-action:hover {
+            background: #2563eb;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Details View */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: var(--glass-blur);
+            overflow: hidden;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .pagination-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            background: #181d28;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--text-main);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Copy Button */
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s ease;
+            margin-left: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            color: var(--primary);
+        }
+
+        .days-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .days-badge.critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .days-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .days-badge.normal {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4B5563;
+        }
+
+        /* Date Inputs and Textarea styling */
+        input[type="date"].filter-control {
+            color-scheme: dark;
+            /* Makes the datepicker icon white on dark background */
+        }
+
+        textarea.filter-control {
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        /* Letter Preview styling */
+        .letter-paper {
+            background: #fff;
+            color: #1f2937;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        /* Print Media CSS */
+        @media print {
+
+            body,
+            html {
+                background: #ffffff !important;
+                color: #000000 !important;
+                background-image: none !important;
+            }
+
+            /* Hide everything on the page */
+            body>* {
+                visibility: hidden;
+            }
+
+            /* Display only the letter card and its children */
+            .report-card-preview,
+            .report-card-preview * {
+                visibility: visible;
+            }
+
+            .report-card-preview {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .report-card-preview>div:first-child {
+                display: none !important;
+            }
+
+            #letter-content {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Ensure table borders print nicely in letter */
+            #letter-content table {
+                border: 1px solid #000000 !important;
+                border-collapse: collapse !important;
+                width: 100% !important;
+                color: #000000 !important;
+            }
+
+            #letter-content th,
+            #letter-content td {
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
+                padding: 6px !important;
+            }
+
+            #letter-content th {
+                background-color: #f3f4f6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <h3 style="font-family: 'Outfit', sans-serif; letter-spacing: 0.1em; text-transform: uppercase;">Loading
+            Dashboard</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">Compiling records from Ayodhya
+            CCTNS database...</p>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-title">
+                <h1><i class="fa-solid from-neutral-200 fa-shield-halved"></i> CCTNS Defaulter Application Portal</h1>
+                <p>Pending Applications Analysis & Tracking Report • District Ayodhya</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="district-badge">Ayodhya Police (अयोध्या पुलिस)</div>
+                <button onclick="handleLogout()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 0.5rem 1.25rem; border-radius: 99px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.borderColor='rgba(239, 68, 68, 0.5)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.borderColor='rgba(239, 68, 68, 0.3)';">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'overview')">
+                <i class="fa-solid fa-chart-line"></i> Overview & Analytics
+            </button>
+            <button class="tab-btn" onclick="switchTab(this, 'details')">
+                <i class="fa-solid fa-list-check"></i> Detailed Defaulter List
+            </button>
+            <button class="tab-btn" onclick="switchTab(this, 'reports')">
+                <i class="fa-solid fa-file-invoice"></i> Defaulter Letters & Reports
+            </button>
+            <button class="tab-btn" onclick="switchTab(this, 'help')">
+                <i class="fa-solid fa-circle-question"></i> Help & Support
+            </button>
+            <button class="tab-btn" onclick="switchTab(this, 'about')">
+                <i class="fa-solid fa-circle-info"></i> About Us
+            </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card total">
+                <i class="fa-solid fa-folder-open metric-icon"></i>
+                <div class="metric-label">Total Unique Applications</div>
+                <div class="metric-value" id="stat-total">0</div>
+                <div class="metric-subtext"><i class="fa-solid fa-database"></i> <span id="stat-total-rows">0</span>
+                    records on dashboard</div>
+            </div>
+            <div class="metric-card defaulter">
+                <i class="fa-solid fa-hourglass-half metric-icon"></i>
+                <div class="metric-label">Total Defaulter Cases</div>
+                <div class="metric-value" id="stat-defaulter" style="color: var(--danger);">0</div>
+                <div class="metric-subtext"><i class="fa-solid fa-triangle-exclamation"></i> Action required immediately
+                </div>
+            </div>
+            <div class="metric-card warning">
+                <i class="fa-solid fa-clock metric-icon"></i>
+                <div class="metric-label">Warning Range</div>
+                <div class="metric-value" id="stat-warning" style="color: var(--warning);">0</div>
+                <div class="metric-subtext"><i class="fa-solid fa-circle-exclamation"></i> Urgent attention required
+                </div>
+            </div>
+            <div class="metric-card within">
+                <i class="fa-solid fa-check-double metric-icon"></i>
+                <div class="metric-label">Within SLA</div>
+                <div class="metric-value" id="stat-within" style="color: var(--success);">0</div>
+                <div class="metric-subtext"><i class="fa-solid fa-thumbs-up"></i> Within standard timeline</div>
+            </div>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="tab-overview" class="tab-content active">
+            <!-- IGRS / Twitter Nodal Support Callout Banner -->
+            <div
+                style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.5rem; color: var(--primary);"><i
+                            class="fa-solid fa-circle-info"></i></span>
+                    <div>
+                        <strong style="color: var(--text-normal); font-size: 0.95rem;">Citizen Portal Escalations
+                            (Twitter/X & IGRS)</strong>
+                        <div style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0.15rem;">For certificate
+                            issues or verification delays: Constable Rahul Yadav (+91 9411626216)</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="tel:9411626216" class="btn-action"
+                        style="padding: 0.4rem 0.8rem; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none;">
+                        <i class="fa-solid fa-phone"></i> Call Support
+                    </a>
+                    <button class="btn-action btn-secondary"
+                        onclick="switchTab(document.querySelectorAll('.tab-btn')[3], 'help')"
+                        style="padding: 0.4rem 0.8rem; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="fa-solid fa-arrow-right"></i> View Protocol
+                    </button>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-pie-chart" style="color: var(--accent);"></i> Services Breakdown</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-services"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--warning);"></i> Ageing Analysis
+                            (Days Pending)</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-ageing"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid (Leaderboard and Chart) -->
+            <div class="dashboard-grid">
+                <!-- Leaderboard -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-medal" style="color: var(--warning);"></i> Police Station Leaderboard
+                        </h3>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;" id="leaderboard-total-ps">0 Police
+                            Stations</span>
+                    </div>
+                    <div class="leaderboard-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Police Station (थाना)</th>
+                                    <th style="text-align: center;">Within SLA</th>
+                                    <th style="text-align: center;">Warning Range</th>
+                                    <th style="text-align: center;">Critical Breach</th>
+                                    <th style="text-align: center;">Total Pending</th>
+                                    <th>Status Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- Generated Dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top PS Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-ranking-stars" style="color: var(--primary);"></i> Top 10 Pending
+                            Police Stations</h3>
+                    </div>
+                    <div class="chart-container" style="min-height: 420px;">
+                        <canvas id="chart-top-ps"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DETAILS -->
+        <div id="tab-details" class="tab-content">
+            <!-- Filter Panel -->
+            <div class="filter-panel" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;">
+                <div class="filter-group">
+                    <label for="filter-search">Search Applicant / App No</label>
+                    <input type="text" id="filter-search" class="filter-control"
+                        placeholder="Search name, ID or address...">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ps">Police Station</label>
+                    <select id="filter-ps" class="filter-control">
+                        <option value="">All Police Stations</option>
+                        <!-- Dynamic options -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-service">Service Type</label>
+                    <select id="filter-service" class="filter-control">
+                        <option value="">All Services</option>
+                        <!-- Dynamic options -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ageing">Ageing Range</label>
+                    <select id="filter-ageing" class="filter-control">
+                        <option value="">All Ranges</option>
+                        <option value="within">Within SLA (Normal)</option>
+                        <option value="warning">Warning (SLA Breached)</option>
+                        <option value="critical">Critical Breach</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-from-date">From Date</label>
+                    <input type="date" id="filter-from-date" class="filter-control">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-to-date">To Date</label>
+                    <input type="date" id="filter-to-date" class="filter-control">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-view-mode">View Mode</label>
+                    <select id="filter-view-mode" class="filter-control">
+                        <option value="individual">Individual Records</option>
+                        <option value="date-wise">Date-wise Summary</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-action btn-secondary" onclick="resetFilters()"><i
+                            class="fa-solid fa-rotate-left"></i> Reset</button>
+                    <button class="btn-action" onclick="exportCSV()"><i class="fa-solid fa-file-excel"></i>
+                        Export</button>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="table-card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-table-list" style="color: var(--primary);"></i> Details View</h3>
+                    <span id="table-record-count" style="color: var(--text-muted); font-size: 0.85rem;">Showing 0 of 0
+                        records</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">SNo</th>
+                                <th>Application No</th>
+                                <th>Police Station</th>
+                                <th>Service Type</th>
+                                <th>Applied Date</th>
+                                <th>Applicant Name</th>
+                                <th style="text-align: center;">Days Pending</th>
+                                <th>Current Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="details-table-body">
+                            <!-- Generated Dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container">
+                    <div class="pagination-info" id="pagination-info">
+                        Showing page 1 of 1
+                    </div>
+                    <div class="pagination-controls" id="pagination-controls">
+                        <!-- Generated Dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: REPORTS & LETTERS -->
+        <div id="tab-reports" class="tab-content">
+            <div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <!-- Left: Configuration Form -->
+                <div class="card" style="height: fit-content; display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div class="card-header" style="margin-bottom: 0.5rem;">
+                        <h3><i class="fa-solid fa-file-pen" style="color: var(--primary);"></i> Letter Settings</h3>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="report-office-type">Target Authority / Office</label>
+                        <select id="report-office-type" class="filter-control" onchange="onReportTargetChange()">
+                            <option value="ps">Police Station (थाना)</option>
+                            <option value="dcrb">DCRB Office (जिला अपराध रिकॉर्ड ब्यूरो)</option>
+                            <option value="liu">LIU Office (स्थानीय अभिसूचना इकाई)</option>
+                            <option value="district_circular">District Summary Circular (समग्र जिला डिफ़ाल्टर परिपत्र)
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group" id="report-ps-select-group">
+                        <label for="report-ps-name">Select Police Station</label>
+                        <select id="report-ps-name" class="filter-control" onchange="generateLetterPreview()">
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="report-letter-no">Letter Reference Number (पत्र संख्या)</label>
+                        <input type="text" id="report-letter-no" class="filter-control"
+                            value="सीसीटीएनएस/सत्यापन-लंबित/2026">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="report-letter-date">Date of Letter (दिनांक)</label>
+                        <input type="date" id="report-letter-date" class="filter-control">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="report-subject">Subject (विषय)</label>
+                        <textarea id="report-subject" class="filter-control" rows="3"
+                            style="resize: vertical; font-family: inherit; font-size: 0.85rem; line-height: 1.4;">सीसीटीएनएस (CCTNS) पोर्टल पर समय-सीमा (15 दिवस) से अधिक समय से लंबित चरित्र सत्यापन आवेदनों के त्वरित निस्तारण के संबंध में।</textarea>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="report-sign-authority">Signing Authority (हस्ताक्षरकर्ता)</label>
+                        <select id="report-sign-authority" class="filter-control" onchange="generateLetterPreview()">
+                            <option value="ssp">वरिष्ठ पुलिस अधीक्षक, जनपद अयोध्या (SSP - डॉ. गौरव ग्रोवर)</option>
+                            <option value="sp_city">पुलिस अधीक्षक (नगर), जनपद अयोध्या (SP City)</option>
+                            <option value="sp_rural">पुलिस अधीक्षक (ग्रामीण), जनपद अयोध्या (SP Rural)</option>
+                            <option value="co_cctns">नोडल अधिकारी (CCTNS), जनपद अयोध्या</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn-action" onclick="printLetter()"><i class="fa-solid fa-print"></i> Print
+                            Letter</button>
+                        <button class="btn-action btn-secondary" onclick="copyLetterText()"><i
+                                class="fa-solid fa-copy"></i> Copy Text</button>
+                    </div>
+                </div>
+
+                <!-- Right: Letter Paper Preview -->
+                <div class="card report-card-preview"
+                    style="padding: 0; overflow: hidden; background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                    <!-- A standard letter pad visual wrapper -->
+                    <div style="background: #f3f4f6; padding: 0.75rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;"
+                        class="no-print">
+                        <span style="color: #4b5563; font-size: 0.85rem; font-weight: 500;"><i
+                                class="fa-solid fa-eye"></i> Letter Preview (A4 Layout)</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <span
+                                style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></span>
+                            <span
+                                style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></span>
+                            <span
+                                style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></span>
+                        </div>
+                    </div>
+                    <div class="letter-paper" id="letter-content"
+                        style="padding: 2.5rem; font-family: 'Inter', sans-serif; font-size: 11pt; line-height: 1.6; color: #000; min-height: 297mm; box-sizing: border-box; background: white;">
+                        <!-- Generated Dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- TAB 4: HELP & SUPPORT -->
+        <div id="tab-help" class="tab-content">
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <!-- Left Card: Contact Information -->
+                <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <i class="fa-solid fa-headset" style="color: var(--primary);"></i> CCTNS & UPCOP Support
+                            Desk
+                        </h3>
+                    </div>
+
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                        For issues related to <strong>UPCOP application verifications</strong>, delayed certificates,
+                        IGRS complaints, or Twitter/X escalations from citizens in the Ayodhya district, please contact
+                        the dedicated nodal support helpdesk:
+                    </p>
+
+                    <!-- Contact Details Card -->
+                    <div
+                        style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; gap: 1.25rem; margin-top: 0.5rem;">
+                        <div
+                            style="background: var(--primary); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                        <div>
+                            <div
+                                style="font-weight: 700; font-size: 1.1rem; color: var(--text-normal); margin-bottom: 0.25rem;">
+                                आरक्षी राहुल यादव (Constable Rahul Yadav)</div>
+                            <div
+                                style="color: var(--primary); font-weight: 500; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                                <i class="fa-solid fa-map-pin"></i> जनपद अयोध्या (Ayodhya District)</div>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <a href="tel:9411626216"
+                                    style="background: var(--primary); color: white; padding: 0.4rem 0.8rem; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: background 0.2s;"
+                                    onmouseover="this.style.background='#2563eb'"
+                                    onmouseout="this.style.background='var(--primary)'">
+                                    <i class="fa-solid fa-phone"></i> +91 9411626216
+                                </a>
+                                <a href="https://wa.me/919411626216" target="_blank"
+                                    style="background: #25d366; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: background 0.2s;"
+                                    onmouseover="this.style.background='#22c35e'"
+                                    onmouseout="this.style.background='#25d366'">
+                                    <i class="fa-brands fa-whatsapp"></i> WhatsApp Help
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 0.5rem;">
+                        <h4
+                            style="font-weight: 600; color: var(--text-normal); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem; margin-top: 0;">
+                            <i class="fa-solid fa-circle-exclamation" style="color: var(--warning);"></i> Escalation
+                            Protocol
+                        </h4>
+                        <ul
+                            style="color: var(--text-muted); font-size: 0.85rem; padding-left: 1.25rem; line-height: 1.6; display: flex; flex-direction: column; gap: 0.35rem; margin: 0;">
+                            <li>Verify that the application's pending status is correctly updated in CCTNS.</li>
+                            <li>Ensure the concerned Verification Officer (पूछताछ अधिकारी) has been notified.</li>
+                            <li>For urgent social media (Twitter/X) or IGRS portal complaints, share the Application
+                                Reference Number directly with the support helpdesk.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Right Card: IGRS / Twitter Escalation Guidelines -->
+                <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <i class="fa-brands fa-twitter" style="color: #1da1f2;"></i> IGRS & Twitter Complaint
+                            Handling
+                        </h3>
+                    </div>
+
+                    <div
+                        style="display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+                        <div
+                            style="display: flex; gap: 0.75rem; border-left: 3px solid var(--warning); padding-left: 0.75rem;">
+                            <div>
+                                <strong style="color: var(--text-normal);">Public Grievance Resolution</strong><br>
+                                Citizens often file complaints regarding delayed verification certificates via Twitter/X
+                                tagging senior officers, or through the official IGRS UP portal.
+                            </div>
+                        </div>
+
+                        <div
+                            style="display: flex; gap: 0.75rem; border-left: 3px solid var(--danger); padding-left: 0.75rem;">
+                            <div>
+                                <strong style="color: var(--text-normal);">Strict Timelines</strong><br>
+                                Social media complaints require rapid action. When a complaint is forwarded to the
+                                district, the CCTNS Nodal Desk must investigate the application immediately.
+                            </div>
+                        </div>
+
+                        <div
+                            style="display: flex; gap: 0.75rem; border-left: 3px solid var(--success); padding-left: 0.75rem;">
+                            <div>
+                                <strong style="color: var(--text-normal);">Certificate Generation</strong><br>
+                                Once character verifications are completed by the local PS and verified by DCRB/LIU,
+                                certificates are generated digitally. Ensure reports are synced correctly.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: ABOUT US -->
+        <div id="tab-about" class="tab-content">
+            <div style="max-width: 800px; margin: 0 auto 2rem auto;">
+                <div class="card" style="display: flex; flex-direction: column; gap: 1.5rem; padding: 2rem;">
+                    <div class="card-header"
+                        style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; text-align: center;">
+                        <h2
+                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--text-normal);">
+                            <i class="fa-solid fa-building-shield" style="color: var(--primary);"></i> About CCTNS &
+                            UPCOP Nodal Cell
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.35rem; margin-bottom: 0;">
+                            CCTNS & Digital Verification Management Team, Ayodhya Police</p>
+                    </div>
+
+                    <div style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem;">
+                        <p>
+                            The CCTNS (Crime and Criminal Tracking Network & Systems) Nodal Cell of Ayodhya District
+                            Police is dedicated to streamlining citizen services, ensuring swift processing of digital
+                            verifications, and addressing public grievances with maximum transparency. Our primary
+                            mission is the timely disposal of character verifications and certificate requests submitted
+                            through the official UPCOP mobile application.
+                        </p>
+                    </div>
+
+                    <h3
+                        style="font-weight: 700; color: var(--text-normal); margin-bottom: 0.5rem; font-size: 1.2rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.5rem; margin-top: 0;">
+                        <i class="fa-solid fa-users" style="color: var(--accent);"></i> Dedicated Support Team (समर्पित
+                        सहायता टीम)
+                    </h3>
+
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border); color: var(--text-normal);">
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700; width: 60px;">Sr. No.</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700;">Name (नाम)</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700;">Rank (पद)</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700;">Posting (तैनाती)</th>
+                                    <th style="padding: 0.75rem 1rem; font-weight: 700;">Role & Responsibility (भूमिका)
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.2s;"
+                                    onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.02)'"
+                                    onmouseout="this.style.backgroundColor='transparent'">
+                                    <td style="padding: 1rem; font-weight: 700; color: var(--primary);">1</td>
+                                    <td style="padding: 1rem; font-weight: 600; color: var(--text-normal);">Rahul Yadav
+                                        (राहुल यादव)</td>
+                                    <td style="padding: 1rem;"><span
+                                            style="background: rgba(139, 92, 246, 0.15); color: var(--accent); padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 500; font-size: 0.8rem;">Constable
+                                            (आरक्षी)</span></td>
+                                    <td style="padding: 1rem; font-weight: 500;">UPCOP Cell, Ayodhya</td>
+                                    <td style="padding: 1rem; color: var(--text-muted); line-height: 1.4;">Dedicated to
+                                        helping you as per your needs regarding the issuance, delay, and clearance of
+                                        your UPCOP verification certificate.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div
+                        style="background: rgba(59, 130, 246, 0.05); border-radius: 8px; padding: 1rem; display: flex; align-items: flex-start; gap: 0.75rem; border-left: 4px solid var(--primary); margin-top: 0.5rem;">
+                        <span style="font-size: 1.25rem; color: var(--primary); margin-top: 0.1rem;"><i
+                                class="fa-solid fa-circle-question"></i></span>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+                            <strong>Citizen Notice:</strong> For quick queries regarding verification status or
+                            certificate download issues on UPCOP, you can access the Nodal Desk directly through the
+                            contact details provided in the <a href="#"
+                                onclick="switchTab(document.querySelectorAll('.tab-btn')[3], 'help'); return false;"
+                                style="color: var(--primary); font-weight: 600; text-decoration: none; border-bottom: 1px dashed var(--primary);">Help
+                                & Support</a> tab.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Import -->
+    <script src="data.js"></script>
+    <script>
+        // Handle Logout Action
+        function handleLogout() {
+            sessionStorage.removeItem('loggedIn');
+            window.location.replace('index.html');
+        }
+
+        // Check if data is imported correctly
+        if (typeof CCTNS_DATA === 'undefined') {
+            alert('Failed to load data.js! Please ensure data.js exists in the same folder.');
+            window.CCTNS_DATA = []; // Fallback to avoid crash
+        }
+
+        // Global variables
+        let filteredData = [...CCTNS_DATA];
+        let currentPage = 1;
+        const recordsPerPage = 15;
+        let chartsInstance = {};
+
+        window.onload = function () {
+            // Hide Loader
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+            }, 600);
+
+            // Populate filters dropdowns
+            populateFilterOptions();
+
+            // Run stats compilation
+            compileStatistics();
+
+            // Initialize charts
+            initCharts();
+
+            // Render leaderboard
+            renderLeaderboard();
+
+            // Render table
+            renderTable();
+        };
+
+        function switchTab(btn, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Find target buttons and panels
+            btn.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function populateFilterOptions() {
+            const psSelect = document.getElementById('filter-ps');
+            const serviceSelect = document.getElementById('filter-service');
+
+            // Unique Police Stations
+            const psList = [...new Set(CCTNS_DATA.map(a => a.ps))].sort((a, b) => a.localeCompare(b, 'hi'));
+            psList.forEach(ps => {
+                const option = document.createElement('option');
+                option.value = ps;
+                option.textContent = ps;
+                psSelect.appendChild(option);
+            });
+
+            // Unique Services
+            const servicesList = [...new Set(CCTNS_DATA.map(a => a.service_type))].sort();
+            servicesList.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service;
+                option.textContent = service || 'Other Services';
+                serviceSelect.appendChild(option);
+            });
+
+            // Attach event listeners to filters
+            document.getElementById('filter-search').addEventListener('input', applyFilters);
+            psSelect.addEventListener('change', applyFilters);
+            serviceSelect.addEventListener('change', applyFilters);
+            document.getElementById('filter-ageing').addEventListener('change', applyFilters);
+
+            // New filters listeners
+            document.getElementById('filter-from-date').addEventListener('change', applyFilters);
+            document.getElementById('filter-to-date').addEventListener('change', applyFilters);
+            document.getElementById('filter-view-mode').addEventListener('change', () => {
+                currentPage = 1;
+                renderTable();
+            });
+
+            // Report settings listeners
+            document.getElementById('report-letter-no').addEventListener('input', generateLetterPreview);
+            document.getElementById('report-letter-date').addEventListener('change', generateLetterPreview);
+            document.getElementById('report-subject').addEventListener('input', generateLetterPreview);
+
+            // Populate Police Stations in report settings
+            populateReportPSOptions();
+
+            // Set default date for letter settings
+            document.getElementById('report-letter-date').value = new Date().toISOString().slice(0, 10);
+
+            // Trigger initial report layout
+            onReportTargetChange();
+        }
+
+        function populateReportPSOptions() {
+            const psSelect = document.getElementById('report-ps-name');
+            psSelect.innerHTML = '';
+
+            const psList = [...new Set(CCTNS_DATA.map(a => a.ps))].sort((a, b) => a.localeCompare(b, 'hi'));
+            psList.forEach(ps => {
+                const option = document.createElement('option');
+                option.value = ps;
+                option.textContent = ps;
+                psSelect.appendChild(option);
+            });
+        }
+
+        function onReportTargetChange() {
+            const officeType = document.getElementById('report-office-type').value;
+            const psGroup = document.getElementById('report-ps-select-group');
+
+            if (officeType === 'ps') {
+                psGroup.style.display = 'flex';
+            } else {
+                psGroup.style.display = 'none';
+            }
+
+            generateLetterPreview();
+        }
+
+        function checkPendingOffice(app) {
+            const status = app.current_status || "";
+            const isPS = status.includes("पूछताछ अधिकारी") ||
+                status.includes("सत्यापन के लिए लंबित") ||
+                (!status.includes("पुलिस स्टेशन द्वारा सत्यापन पूर्ण किया गया") && !status.includes("पूछताछ रिपोर्ट समर्पित"));
+            const isDCRB = status.includes("लंबित डी सी आर बी") || status.includes("लंबित डी.सी.आर.बी.") || status.includes("जमा करने के लिए लंबित डी सी आर बी");
+            const isLIU = status.includes("लंबित एल आई यू") || status.includes("लंबित एल.आई.यू.") || status.includes("जमा करने के लिए लंबित एल आई यू");
+
+            return { isPS, isDCRB, isLIU };
+        }
+
+        function isAppDefaulter(app) {
+            const days = app.pending_days;
+            const office = checkPendingOffice(app);
+            if (office.isPS) return days > 7;
+            if (office.isDCRB) return days > 10;
+            if (office.isLIU) return days > 10;
+            return days > 15;
+        }
+
+        function getAppSLAStatus(app) {
+            const days = app.pending_days;
+            const office = checkPendingOffice(app);
+
+            let limitNormal = 15;
+            let limitWarning = 30;
+
+            if (office.isPS) {
+                limitNormal = 7;
+                limitWarning = 15;
+            } else if (office.isDCRB || office.isLIU) {
+                limitNormal = 10;
+                limitWarning = 20;
+            }
+
+            if (days <= limitNormal) return 'within';
+            if (days <= limitWarning) return 'warning';
+            return 'critical';
+        }
+
+        function getServiceCategory(serviceType) {
+            if (!serviceType) return "character";
+            if (serviceType.includes("कर्मचारी")) return "employee";
+            if (serviceType.includes("किरायेदारी")) return "tenant";
+            if (serviceType.includes("ठेकेदारी")) return "contractor";
+            if (serviceType.includes("शिकायत")) return "complaint";
+            return "character";
+        }
+
+        function parseAppDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.trim().split(' ')[0].split('/');
+            if (parts.length !== 3) return null;
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            return new Date(year, month, day);
+        }
+
+        function formatToIndianDate(dateStr) {
+            if (!dateStr) return "";
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function isPendingAt(app, officeType, psFilterName = null) {
+            const status = app.current_status || "";
+            const days = app.pending_days;
+
+            if (officeType === "ps") {
+                if (psFilterName && app.ps !== psFilterName) return false;
+
+                // PS threshold: Defaulter above 7 days
+                if (days <= 7) return false;
+
+                return status.includes("पूछताछ अधिकारी") ||
+                    status.includes("सत्यापन के लिए लंबित") ||
+                    (!status.includes("पुलिस स्टेशन द्वारा सत्यापन पूर्ण किया गया") && !status.includes("पूछताछ रिपोर्ट समर्पित"));
+            }
+
+            if (officeType === "dcrb") {
+                // DCRB threshold: Defaulter above 10 days
+                if (days <= 10) return false;
+                return status.includes("लंबित डी सी आर बी") || status.includes("लंबित डी.सी.आर.बी.") || status.includes("जमा करने के लिए लंबित डी सी आर बी");
+            }
+
+            if (officeType === "liu") {
+                // LIU threshold: Defaulter above 10 days
+                if (days <= 10) return false;
+                return status.includes("लंबित एल आई यू") || status.includes("लंबित एल.आई.यू.") || status.includes("जमा करने के लिए लंबित एल आई यू");
+            }
+
+            return false;
+        }
+
+        function generateLetterPreview() {
+            const officeType = document.getElementById('report-office-type').value;
+            const psName = document.getElementById('report-ps-name').value;
+            const letterNo = document.getElementById('report-letter-no').value;
+            const letterDateVal = document.getElementById('report-letter-date').value;
+            const subject = document.getElementById('report-subject').value;
+            const signAuthority = document.getElementById('report-sign-authority').value;
+
+            const formattedLetterDate = formatToIndianDate(letterDateVal || new Date().toISOString().slice(0, 10));
+
+            // Signing Authority Names & Titles
+            let signName = '';
+            let signTitle = '';
+            if (signAuthority === 'ssp') {
+                signName = 'डॉ. गौरव ग्रोवर';
+                signTitle = 'वरिष्ठ पुलिस अधीक्षक';
+            } else if (signAuthority === 'sp_city') {
+                signName = 'मधुबन कुमार सिंह';
+                signTitle = 'पुलिस अधीक्षक (नगर)';
+            } else if (signAuthority === 'sp_rural') {
+                signName = 'अतुल कुमार सोनकर';
+                signTitle = 'पुलिस अधीक्षक (ग्रामीण)';
+            } else {
+                signName = 'संजय कुमार';
+                signTitle = 'नोडल अधिकारी (CCTNS)';
+            }
+
+            // District Summary Circular specific logic
+            if (officeType === 'district_circular') {
+                const rows = [];
+
+                // Compile DCRB
+                const dcrbApps = CCTNS_DATA.filter(app => isPendingAt(app, 'dcrb'));
+                const dcrbRow = { name: "डीसीआरबी कार्यालय", employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                dcrbApps.forEach(app => {
+                    const cat = getServiceCategory(app.service_type);
+                    dcrbRow[cat]++;
+                    dcrbRow.total++;
+                });
+                if (dcrbRow.total > 0) rows.push(dcrbRow);
+
+                // Compile LIU
+                const liuApps = CCTNS_DATA.filter(app => isPendingAt(app, 'liu'));
+                const liuRow = { name: "एलआईयू कार्यालय", employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                liuApps.forEach(app => {
+                    const cat = getServiceCategory(app.service_type);
+                    liuRow[cat]++;
+                    liuRow.total++;
+                });
+                if (liuRow.total > 0) rows.push(liuRow);
+
+                // Compile Police Stations (excluding Women Police Station)
+                const psList = [...new Set(CCTNS_DATA.map(a => a.ps))].sort((a, b) => a.localeCompare(b, 'hi'));
+                psList.forEach(ps => {
+                    if (ps.includes("महिला")) return; // Exclude women PS
+
+                    const psApps = CCTNS_DATA.filter(app => isPendingAt(app, 'ps', ps));
+                    const psRow = { name: ps, employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                    psApps.forEach(app => {
+                        const cat = getServiceCategory(app.service_type);
+                        psRow[cat]++;
+                        psRow.total++;
+                    });
+                    if (psRow.total > 0) rows.push(psRow);
+                });
+
+                // Sort rows by total descending
+                rows.sort((a, b) => b.total - a.total);
+
+                let totalDistrictDefaulters = 0;
+                let rowsHTML = '';
+                rows.forEach(row => {
+                    totalDistrictDefaulters += row.total;
+                    rowsHTML += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 0.5rem; font-weight: bold;">${row.name}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${row.employee || ''}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${row.tenant || ''}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${row.character || ''}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${row.contractor || ''}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${row.complaint || ''}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center; font-weight: bold; background-color: #f3f4f6;">${row.total}</td>
+                        </tr>
+                    `;
+                });
+
+                const letterHTML = `
+                    <div style="font-size: 11pt; line-height: 1.6; font-family: 'Inter', sans-serif;">
+                        <div style="font-weight: bold; margin-bottom: 1.5rem; line-height: 1.5;">
+                            समस्त प्रभारी निरीक्षक/ थानाध्यक्ष ( महिला थाना को छोड़कर)<br>
+                            प्रभारी एल.आई.यू,<br>
+                            प्रभारी डी.सी.आर.बी.,<br>
+                            जनपद अयोध्या ।
+                        </div>
+                        
+                        <div style="text-align: justify; margin-bottom: 1.5rem; text-indent: 2.5rem;">
+                            अवगत कराना है कि आज दिनांक <strong>${formattedLetterDate}</strong> को आपके ऑनलाईन सीसीटीएनएस पोर्टल पर डिफाल्टर व लंबित वेरीफिकेशनों की संख्यात्मक रिपोर्ट निम्नवत् है -
+                        </div>
+                        
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 0.5rem; text-decoration: underline;">
+                            कायालयवार/ थािावार नडफाल्टर सेवा अिुरोधों की सख्ं यात्मक ररपोटा
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 0.85rem; color: #000;">
+                                <thead>
+                                    <tr style="background-color: #f3f4f6;">
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: left;">थाना</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 85px;">कर्मचारी<br>सत्यापन</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 85px;">किरायेदारी<br>सत्यापन</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 85px;">चरित्र<br>सत्यापन</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 95px;">चरित्र<br>सत्यापन-ठेकेदारी</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 85px;">शिकायत</th>
+                                        <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 90px; background-color: #e5e7eb;">Grand Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHTML}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="text-align: justify; margin-bottom: 1.5rem; line-height: 1.6; text-indent: 2.5rem;">
+                            उक्त डिफाल्टर व लंबित सेवा अनुरोधों के सम्बन्ध में आपको पुनः निर्देशित किया जाता है कि आज दिनांक <strong>${formattedLetterDate}</strong> को कार्यालय डीसीआरबी, कार्यालय एलआईयू व थाना स्तर पर कुल मिलाकर <strong>${totalDistrictDefaulters}</strong> वेरीफिकेशन डिफाल्टर व लंबित प्रदर्शित हो रहे हैं। अतः उक्त वेरीफिकेशनों को आज प्रत्येक दशा में शत् प्रतिशत निस्तारित कर सम्बन्धित का स्पष्टीकरण लौटती डाक से इस कार्यालय को भेजना सुनिश्चित करें कि क्यों न आपके द्वारा अपने दायित्वों के प्रति बरती गयी लापरवाही के सम्बन्ध में प्रारम्भिक जाँच शुरु किया जाये।
+                        </div>
+                        
+                        <div style="font-weight: bold; margin-bottom: 2rem;">
+                            संलग्नकः-(डिफाल्टर से0अनु0 की सूची)
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2rem;">
+                            <div style="font-weight: bold; font-size: 0.95rem;">
+                                संख्याः- ${letterNo}<br>
+                                दिनांकः- ${formattedLetterDate}
+                            </div>
+                            <div style="text-align: center; width: 250px; line-height: 1.4; font-weight: bold;">
+                                <br><br>
+                                पुलीस अधीक्षक, ग्रामीण/<br>
+                                नोडलअधिकारीसी.एम.दर्पण<br>
+                                पोर्टल,अयोध्या ।
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('letter-content').innerHTML = letterHTML;
+                return;
+            }
+
+            // Normal single unit report (PS/DCRB/LIU)
+            let recipient = '';
+            let officeLabel = '';
+            if (officeType === 'ps') {
+                recipient = `थानाध्यक्ष / प्रभारी निरीक्षक,<br>थाना ${psName},<br>जनपद अयोध्या।`;
+                officeLabel = `थाना ${psName}`;
+            } else if (officeType === 'dcrb') {
+                recipient = `प्रभारी,<br>जिला अपराध रिकॉर्ड ब्यूरो (DCRB),<br>जनपद अयोध्या।`;
+                officeLabel = `डी.सी.आर.बी. (DCRB) कार्यालय`;
+            } else if (officeType === 'liu') {
+                recipient = `प्रभारी,<br>स्थानीय अभिसूचना इकाई (LIU),<br>जनपद अयोध्या।`;
+                officeLabel = `एल.आई.यू. (LIU) कार्यालय`;
+            }
+
+            const matchingApps = CCTNS_DATA.filter(app => {
+                return isPendingAt(app, officeType, psName);
+            });
+
+            // Sort by pending days descending (oldest applied first)
+            const sortedApps = [...matchingApps].sort((a, b) => b.pending_days - a.pending_days);
+
+            let rowsHTML = '';
+            if (sortedApps.length === 0) {
+                rowsHTML = `<tr><td colspan="7" style="border: 1px solid #000; padding: 1.5rem; text-align: center; font-weight: bold; color: #4b5563;">कोई भी डिफ़ाल्टर आवेदन पत्र नहीं पाया गया।</td></tr>`;
+            } else {
+                sortedApps.forEach((app, idx) => {
+                    rowsHTML += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center;">${idx + 1}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; font-family: monospace; font-weight: bold;">${app.app_no}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem;">${app.ps}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem;">${app.applicant_name}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem;">${app.applied_date.split(' ')[0]}</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; text-align: center; font-weight: bold; color: #b91c1c;">${app.pending_days} Days</td>
+                            <td style="border: 1px solid #000; padding: 0.5rem; font-size: 0.75rem; line-height: 1.3;" title="${app.current_status || ''}">${app.current_status || 'Pending'}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const letterHTML = `
+                <div class="letter-header" style="text-align: center; border-bottom: 2px double #000; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <h2 style="font-weight: 700; margin: 0; font-size: 1.5rem; font-family: 'Outfit', sans-serif;">कार्यालय वरिष्ठ पुलिस अधीक्षक, जनपद अयोध्या</h2>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.9rem; font-weight: 500;">(सी.सी.टी.एन.एस. अनुभाग / CCTNS Section)</p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; font-size: 0.95rem; font-weight: 600;">
+                    <div>पत्र संख्या: ${letterNo}</div>
+                    <div>दिनांक: ${formattedLetterDate}</div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">
+                    <strong>सेवा में,</strong><br>
+                    <span style="padding-left: 1.5rem; display: inline-block; margin-top: 0.25rem;">${recipient}</span>
+                </div>
+
+                <div style="margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">
+                    <strong>विषय:</strong> <span style="text-decoration: underline; font-weight: 600;">${subject}</span>
+                </div>
+
+                <div style="text-align: justify; margin-bottom: 1.5rem; font-size: 0.95rem; text-indent: 2.5rem; line-height: 1.6;">
+                    महोदय, उपर्युक्त विषयक निर्देशित किया जाता है कि सी.सी.टी.एन.एस. पोर्टल की समीक्षा में पाया गया है कि आपके स्तर (${officeLabel}) पर निम्नलिखित चरित्र सत्यापन (Character Verification) आवेदन निर्धारित समयावधि से अधिक समय से लंबित (Defaulter) हैं। लंबित आवेदनों का तिथि-वार (Date-wise) विवरण निम्नानुसार है:
+                </div>
+
+                <div style="margin-bottom: 2rem; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; border: 1px solid #000; color: #000;">
+                        <thead>
+                            <tr style="background-color: #f3f4f6;">
+                                <th style="border: 1px solid #000; padding: 0.5rem; text-align: center; font-weight: bold; width: 40px;">क्र.सं.</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; width: 110px;">आवेदन संख्या</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; width: 95px;">थाना</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold;">आवेदक का नाम</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; width: 90px;">आवेदन तिथि</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold; text-align: center; width: 80px;">लंबित दिवस</th>
+                                <th style="border: 1px solid #000; padding: 0.5rem; font-weight: bold;">वर्तमान स्थिति</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="text-align: justify; margin-bottom: 2.5rem; font-size: 0.95rem; text-indent: 2.5rem; line-height: 1.6;">
+                    अतः निर्देशित किया जाता है कि उक्त लंबित आवेदनों का प्राथमिकता के आधार पर तत्काल सत्यापन/निस्तारण करना सुनिश्चित करें एवं कृत कार्यवाही की आख्या 3 दिवस के भीतर सी.सी.टी.एन.एस. अनुभाग को प्रेषित करना सुनिश्चित करें। इसे अत्यंत महत्वपूर्ण समझें।
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 3rem;">
+                    <div style="text-align: center; width: 250px; font-size: 0.95rem; line-height: 1.4;">
+                        <br><br>
+                        <strong>(${signName})</strong><br>
+                        ${signTitle}<br>
+                        जनपद अयोध्या
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('letter-content').innerHTML = letterHTML;
+        }
+
+        function printLetter() {
+            window.print();
+        }
+
+        function copyLetterText() {
+            const officeType = document.getElementById('report-office-type').value;
+            const psName = document.getElementById('report-ps-name').value;
+            const letterNo = document.getElementById('report-letter-no').value;
+            const letterDateVal = document.getElementById('report-letter-date').value;
+            const subject = document.getElementById('report-subject').value;
+            const signAuthority = document.getElementById('report-sign-authority').value;
+            const formattedLetterDate = formatToIndianDate(letterDateVal || new Date().toISOString().slice(0, 10));
+
+            // District Summary Circular text format
+            if (officeType === 'district_circular') {
+                const rows = [];
+
+                // Compile DCRB
+                const dcrbApps = CCTNS_DATA.filter(app => isPendingAt(app, 'dcrb'));
+                const dcrbRow = { name: "डीसीआरबी कार्यालय", employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                dcrbApps.forEach(app => {
+                    const cat = getServiceCategory(app.service_type);
+                    dcrbRow[cat]++;
+                    dcrbRow.total++;
+                });
+                if (dcrbRow.total > 0) rows.push(dcrbRow);
+
+                // Compile LIU
+                const liuApps = CCTNS_DATA.filter(app => isPendingAt(app, 'liu'));
+                const liuRow = { name: "एलआईयू कार्यालय", employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                liuApps.forEach(app => {
+                    const cat = getServiceCategory(app.service_type);
+                    liuRow[cat]++;
+                    liuRow.total++;
+                });
+                if (liuRow.total > 0) rows.push(liuRow);
+
+                // Compile Police Stations
+                const psList = [...new Set(CCTNS_DATA.map(a => a.ps))].sort((a, b) => a.localeCompare(b, 'hi'));
+                psList.forEach(ps => {
+                    if (ps.includes("महिला")) return;
+
+                    const psApps = CCTNS_DATA.filter(app => isPendingAt(app, 'ps', ps));
+                    const psRow = { name: ps, employee: 0, tenant: 0, character: 0, contractor: 0, complaint: 0, total: 0 };
+                    psApps.forEach(app => {
+                        const cat = getServiceCategory(app.service_type);
+                        psRow[cat]++;
+                        psRow.total++;
+                    });
+                    if (psRow.total > 0) rows.push(psRow);
+                });
+
+                rows.sort((a, b) => b.total - a.total);
+
+                let totalDistrictDefaulters = 0;
+                let text = `समस्त प्रभारी निरीक्षक/ थानाध्यक्ष ( महिला थाना को छोड़कर)\nप्रभारी एल.आई.यू,\nप्रभारी डी.सी.आर.बी.,\nजनपद अयोध्या।\n\n`;
+                text += `\tअवगत कराना है कि आज दिनांक ${formattedLetterDate} को आपके ऑनलाईन सीसीटीएनएस पोर्टल पर डिफाल्टर व लंबित वेरीफिकेशनों की संख्यात्मक रिपोर्ट निम्नवत् है -\n\n`;
+                text += `\t\tकायालयवार/ थािावार नडफाल्टर सेवा अिुरोधों की सख्ं यात्मक ररपोटा\n\n`;
+                text += `----------------------------------------------------------------------------------------------------\n`;
+                text += `थाना/कार्यालय\t\tकर्मचारी\tकिरायेदारी\tचरित्र\tचरित्र-ठेकेदारी\tशिकायत\tGrand Total\n`;
+                text += `----------------------------------------------------------------------------------------------------\n`;
+
+                rows.forEach(row => {
+                    totalDistrictDefaulters += row.total;
+                    const paddedName = row.name.padEnd(16, ' ');
+                    text += `${paddedName}\t${row.employee || 0}\t\t${row.tenant || 0}\t\t${row.character || 0}\t\t${row.contractor || 0}\t\t${row.complaint || 0}\t\t${row.total}\n`;
+                });
+                text += `----------------------------------------------------------------------------------------------------\n\n`;
+
+                text += `उक्त डिफाल्टर व लंबित सेवा अनुरोधों के सम्बन्ध में आपको पुनः निर्देशित किया जाता है कि आज दिनांक ${formattedLetterDate} को कार्यालय डीसीआरबी, कार्यालय एलआईयू व थाना स्तर पर कुल मिलाकर ${totalDistrictDefaulters} वेरीफिकेशन डिफाल्टर व लंबित प्रदर्शित हो रहे हैं। अतः उक्त वेरीफिकेशनों को आज प्रत्येक दशा में शत् प्रतिशत निस्तारित कर सम्बन्धित का स्पष्टीकरण लौटती डाक से इस कार्यालय को भेजना सुनिश्चित करें कि क्यों न आपके द्वारा अपने दायित्वों के प्रति बरती गयी लापरवाही के सम्बन्ध में प्रारम्भिक जाँच शुरु किया जाये।\n\n`;
+                text += `संलग्नकः-(डिफाल्टर से0अनु0 की सूची)\n\n`;
+                text += `संख्याः- ${letterNo}\t\t\t\tपुलीस अधीक्षक, ग्रामीण/\n`;
+                text += `दिनांकः- ${formattedLetterDate}\t\t\t\tनोडलअधिकारीसी.एम.दर्पण\n`;
+                text += `\t\t\t\t\t\tपोर्टल,अयोध्या ।`;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Circular text copied to clipboard successfully!');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+                return;
+            }
+
+            // Normal PS/DCRB/LIU copy text
+            let recipient = '';
+            let officeLabel = '';
+            if (officeType === 'ps') {
+                recipient = `थानाध्यक्ष / प्रभारी निरीक्षक, थाना ${psName}, जनपद अयोध्या।`;
+                officeLabel = `थाना ${psName}`;
+            } else if (officeType === 'dcrb') {
+                recipient = `प्रभारी, जिला अपराध रिकॉर्ड ब्यूरो (DCRB), जनपद अयोध्या।`;
+                officeLabel = `डी.सी.आर.बी. (DCRB) कार्यालय`;
+            } else if (officeType === 'liu') {
+                recipient = `प्रभारी, स्थानीय अभिसूचना इकाई (LIU), जनपद अयोध्या।`;
+                officeLabel = `एल.आई.यू. (LIU) कार्यालय`;
+            }
+
+            let signName = '';
+            let signTitle = '';
+            if (signAuthority === 'ssp') {
+                signName = 'डॉ. गौरव ग्रोवर';
+                signTitle = 'वरिष्ठ पुलिस अधीक्षक';
+            } else if (signAuthority === 'sp_city') {
+                signName = 'मधुबन कुमार सिंह';
+                signTitle = 'पुलिस अधीक्षक (नगर)';
+            } else if (signAuthority === 'sp_rural') {
+                signName = 'अतुल कुमार सोनकर';
+                signTitle = 'पुलिस अधीक्षक (ग्रामीण)';
+            } else {
+                signName = 'संजय कुमार';
+                signTitle = 'नोडल अधिकारी (CCTNS)';
+            }
+
+            const matchingApps = CCTNS_DATA.filter(app => {
+                return isPendingAt(app, officeType, psName);
+            });
+            const sortedApps = [...matchingApps].sort((a, b) => b.pending_days - a.pending_days);
+
+            let text = `कार्यालय वरिष्ठ पुलिस अधीक्षक, जनपद अयोध्या\n(सी.सी.टी.एन.एस. अनुभाग / CCTNS Section)\n\n`;
+            text += `पत्र संख्या: ${letterNo}\t\tदिनांक: ${formattedLetterDate}\n\n`;
+            text += `सेवा में,\n\t${recipient}\n\n`;
+            text += `विषय: ${subject}\n\n`;
+            text += `महोदय,\n\tउपर्युक्त विषयक निर्देशित किया जाता है कि सी.सी.टी.एन.एस. पोर्टल की समीक्षा में पाया गया है कि आपके स्तर (${officeLabel}) पर निम्नलिखित चरित्र सत्यापन (Character Verification) आवेदन निर्धारित समयावधि से अधिक समय से लंबित (Defaulter) हैं। लंबित आवेदनों का तिथि-वार (Date-wise) विवरण निम्नानुसार है:\n\n`;
+
+            text += `----------------------------------------------------------------------------------------------------\n`;
+            text += `क्र.सं.\tआवेदन संख्या\t\tथाना\t\tआवेदक का नाम\t\tआवेदन तिथि\tलंबित दिवस\tवर्तमान स्थिति\n`;
+            text += `----------------------------------------------------------------------------------------------------\n`;
+
+            sortedApps.forEach((app, idx) => {
+                text += `${idx + 1}\t${app.app_no}\t${app.ps}\t${app.applicant_name}\t${app.applied_date.split(' ')[0]}\t${app.pending_days} Days\t${app.current_status || 'लंबित'}\n`;
+            });
+
+            text += `----------------------------------------------------------------------------------------------------\n\n`;
+            text += `अतः निर्देशित किया जाता है कि उक्त लंबित आवेदनों का प्राथमिकता के आधार पर तत्काल सत्यापन/निस्तारण करना सुनिश्चित करें एवं कृत कार्यवाही की आख्या 3 दिवस के भीतर सी.सी.टी.एन.एस. अनुभाग को प्रेषित करना सुनिश्चित करें। इसे अत्यंत महत्वपूर्ण समझें।\n\n`;
+            text += `\t\t\t\t\t\t\t(${signName})\n`;
+            text += `\t\t\t\t\t\t\t${signTitle}\n`;
+            text += `\t\t\t\t\t\t\tजनपद अयोध्या`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Letter text copied to clipboard successfully!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function compileStatistics() {
+            const total = CCTNS_DATA.length;
+            let within = 0;
+            let warning = 0;
+            let critical = 0;
+
+            CCTNS_DATA.forEach(app => {
+                const status = getAppSLAStatus(app);
+                if (status === 'within') within++;
+                else if (status === 'warning') warning++;
+                else critical++;
+            });
+
+            document.getElementById('stat-total').textContent = total.toLocaleString();
+            document.getElementById('stat-total-rows').textContent = (total * 2).toLocaleString(); // Estimating raw rows
+            document.getElementById('stat-defaulter').textContent = (warning + critical).toLocaleString();
+            document.getElementById('stat-warning').textContent = warning.toLocaleString();
+            document.getElementById('stat-within').textContent = within.toLocaleString();
+        }
+
+        function initCharts() {
+            const colors = {
+                primary: '#3b82f6',
+                accent: '#8b5cf6',
+                success: '#10b981',
+                warning: '#f59e0b',
+                danger: '#ef4444',
+                grey: '#4b5563',
+                grid: 'rgba(255, 255, 255, 0.05)',
+                text: '#9ca3af'
+            };
+
+            Chart.defaults.color = colors.text;
+            Chart.defaults.borderColor = colors.grid;
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // 1. Service Breakdown
+            const serviceCounts = {};
+            CCTNS_DATA.forEach(app => {
+                const name = app.service_type || 'Other Services';
+                serviceCounts[name] = (serviceCounts[name] || 0) + 1;
+            });
+
+            const serviceCtx = document.getElementById('chart-services').getContext('2d');
+            chartsInstance.services = new Chart(serviceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(serviceCounts),
+                    datasets: [{
+                        data: Object.values(serviceCounts),
+                        backgroundColor: [colors.primary, colors.accent, colors.warning, colors.success, colors.danger, colors.grey],
+                        borderWidth: 1,
+                        borderColor: '#111827'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            // 2. Ageing Breakdown
+            let ranges = { 'Within SLA': 0, 'Warning Range': 0, 'Critical Breach': 0 };
+            CCTNS_DATA.forEach(app => {
+                const status = getAppSLAStatus(app);
+                if (status === 'within') ranges['Within SLA']++;
+                else if (status === 'warning') ranges['Warning Range']++;
+                else ranges['Critical Breach']++;
+            });
+
+            const ageingCtx = document.getElementById('chart-ageing').getContext('2d');
+            chartsInstance.ageing = new Chart(ageingCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        label: 'Applications Count',
+                        data: Object.values(ranges),
+                        backgroundColor: [colors.success, colors.warning, colors.danger],
+                        borderRadius: 8,
+                        barThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: colors.grid } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 3. Top PS
+            const psCounts = {};
+            CCTNS_DATA.forEach(app => {
+                psCounts[app.ps] = (psCounts[app.ps] || 0) + 1;
+            });
+            const topPS = Object.entries(psCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const psCtx = document.getElementById('chart-top-ps').getContext('2d');
+            chartsInstance.topPS = new Chart(psCtx, {
+                type: 'bar',
+                data: {
+                    labels: topPS.map(a => a[0]),
+                    datasets: [{
+                        label: 'Pending Cases',
+                        data: topPS.map(a => a[1]),
+                        backgroundColor: colors.primary,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: colors.grid } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderLeaderboard() {
+            // Compile PS-wise stats
+            const psMap = {};
+            CCTNS_DATA.forEach(app => {
+                if (!psMap[app.ps]) {
+                    psMap[app.ps] = { name: app.ps, within: 0, warning: 0, critical: 0, total: 0 };
+                }
+                const status = getAppSLAStatus(app);
+                if (status === 'within') psMap[app.ps].within++;
+                else if (status === 'warning') psMap[app.ps].warning++;
+                else psMap[app.ps].critical++;
+                psMap[app.ps].total++;
+            });
+
+            const psList = Object.values(psMap).sort((a, b) => b.total - a.total);
+            document.getElementById('leaderboard-total-ps').textContent = `${psList.length} Police Stations`;
+
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+
+            psList.forEach(ps => {
+                let sevClass = 'low';
+                let sevText = 'Low';
+                const ratio = (ps.warning + ps.critical) / ps.total;
+                if (ps.critical > 5 || ratio > 0.15) {
+                    sevClass = 'high';
+                    sevText = 'Critical';
+                } else if (ps.warning > 0 || ps.critical > 0) {
+                    sevClass = 'medium';
+                    sevText = 'Moderate';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="ps-badge">${ps.name}</span></td>
+                    <td style="text-align: center;"><span class="count-badge ${ps.within > 0 ? 'has-items' : 'zero'}">${ps.within}</span></td>
+                    <td style="text-align: center;"><span class="count-badge ${ps.warning > 0 ? 'warning' : 'zero'}">${ps.warning}</span></td>
+                    <td style="text-align: center;"><span class="count-badge ${ps.critical > 0 ? 'danger' : 'zero'}">${ps.critical}</span></td>
+                    <td style="text-align: center;"><strong style="font-size: 1.05rem;">${ps.total}</strong></td>
+                    <td><span class="status-pill ${sevClass}">${sevText}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('filter-search').value.toLowerCase().trim();
+            const ps = document.getElementById('filter-ps').value;
+            const service = document.getElementById('filter-service').value;
+            const ageing = document.getElementById('filter-ageing').value;
+
+            // Date filters
+            const fromVal = document.getElementById('filter-from-date').value;
+            const toVal = document.getElementById('filter-to-date').value;
+            const fromDate = fromVal ? new Date(fromVal) : null;
+            const toDate = toVal ? new Date(toVal) : null;
+            if (fromDate) fromDate.setHours(0, 0, 0, 0);
+            if (toDate) toDate.setHours(23, 59, 59, 999);
+
+            filteredData = CCTNS_DATA.filter(app => {
+                // Search check
+                const matchSearch = !search ||
+                    app.applicant_name.toLowerCase().includes(search) ||
+                    app.app_no.includes(search) ||
+                    app.present_address.toLowerCase().includes(search) ||
+                    app.permanent_address.toLowerCase().includes(search);
+
+                // PS check
+                const matchPS = !ps || app.ps === ps;
+
+                // Service check
+                const matchService = !service || app.service_type === service;
+
+                // Ageing check
+                let matchAgeing = true;
+                if (ageing === 'within') matchAgeing = app.pending_days <= 15;
+                else if (ageing === 'warning') matchAgeing = app.pending_days > 15 && app.pending_days <= 30;
+                else if (ageing === 'critical') matchAgeing = app.pending_days > 30;
+
+                // Date check
+                let matchDate = true;
+                if (fromDate || toDate) {
+                    const appDate = parseAppDate(app.applied_date);
+                    if (appDate) {
+                        if (fromDate && appDate < fromDate) matchDate = false;
+                        if (toDate && appDate > toDate) matchDate = false;
+                    } else {
+                        matchDate = false;
+                    }
+                }
+
+                return matchSearch && matchPS && matchService && matchAgeing && matchDate;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-ps').value = '';
+            document.getElementById('filter-service').value = '';
+            document.getElementById('filter-ageing').value = '';
+            document.getElementById('filter-from-date').value = '';
+            document.getElementById('filter-to-date').value = '';
+            if (document.getElementById('filter-view-mode')) {
+                document.getElementById('filter-view-mode').value = 'individual';
+            }
+            filteredData = [...CCTNS_DATA];
+            currentPage = 1;
+            renderTable();
+        }
+
+        function filterToSpecificDate(dateStr) {
+            const parts = dateStr.split('/');
+            const yyyymmdd = `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+            document.getElementById('filter-from-date').value = yyyymmdd;
+            document.getElementById('filter-to-date').value = yyyymmdd;
+
+            document.getElementById('filter-view-mode').value = 'individual';
+
+            applyFilters();
+        }
+
+        function renderTable() {
+            const tableHead = document.querySelector('.table-card table thead');
+            const tbody = document.getElementById('details-table-body');
+            const viewMode = document.getElementById('filter-view-mode') ? document.getElementById('filter-view-mode').value : 'individual';
+
+            tbody.innerHTML = '';
+
+            const totalRecords = filteredData.length;
+
+            if (totalRecords === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 3rem;">No applications match the filters</td></tr>`;
+                document.getElementById('pagination-info').textContent = 'Showing page 0 of 0';
+                document.getElementById('pagination-controls').innerHTML = '';
+                document.getElementById('table-record-count').textContent = `Showing 0 records`;
+                return;
+            }
+
+            if (viewMode === 'individual') {
+                tableHead.innerHTML = `
+                    <tr>
+                        <th style="width: 50px;">SNo</th>
+                        <th>Application No</th>
+                        <th>Police Station</th>
+                        <th>Service Type</th>
+                        <th>Applied Date</th>
+                        <th>Applicant Name</th>
+                        <th style="text-align: center;">Days Pending</th>
+                        <th>Current Status</th>
+                    </tr>
+                `;
+
+                document.getElementById('table-record-count').textContent = `Showing ${totalRecords} unique applications`;
+
+                const totalPages = Math.ceil(totalRecords / recordsPerPage);
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                const startIndex = (currentPage - 1) * recordsPerPage;
+                const endIndex = Math.min(startIndex + recordsPerPage, totalRecords);
+
+                for (let i = startIndex; i < endIndex; i++) {
+                    const app = filteredData[i];
+                    const tr = document.createElement('tr');
+
+                    let daysBadge = 'normal';
+                    if (app.pending_days > 30) daysBadge = 'critical';
+                    else if (app.pending_days > 15) daysBadge = 'warning';
+
+                    tr.innerHTML = `
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">${i + 1}</td>
+                        <td>
+                            <code>${app.app_no}</code>
+                            <button class="copy-btn" onclick="copyToClipboard(this, '${app.app_no}')" title="Copy App No">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </td>
+                        <td><span class="ps-badge">${app.ps}</span></td>
+                        <td style="font-weight: 500;">${app.service_type || 'Other'}</td>
+                        <td>${app.applied_date}</td>
+                        <td>${app.applicant_name}</td>
+                        <td style="text-align: center;"><span class="days-badge ${daysBadge}">${app.pending_days} Days</span></td>
+                        <td style="max-width: 250px; font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${app.current_status || ''}">${app.current_status || 'Pending'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                document.getElementById('pagination-info').textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalRecords} applications (Page ${currentPage} of ${totalPages})`;
+                renderPaginationControls(totalPages);
+            } else {
+                tableHead.innerHTML = `
+                    <tr>
+                        <th style="width: 50px;">SNo</th>
+                        <th>Applied Date</th>
+                        <th style="text-align: center;">Total Pending</th>
+                        <th>Police Stations Involved</th>
+                        <th>Service Types</th>
+                        <th style="text-align: center;">Avg Days Pending</th>
+                        <th>Pending Office Breakdown</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                `;
+
+                const grouped = {};
+                filteredData.forEach(app => {
+                    const dateOnly = app.applied_date.split(' ')[0];
+                    if (!grouped[dateOnly]) {
+                        grouped[dateOnly] = {
+                            date: dateOnly,
+                            count: 0,
+                            policeStations: new Set(),
+                            serviceTypes: new Set(),
+                            totalPendingDays: 0,
+                            statusCounts: { ps: 0, dcrb: 0, liu: 0, other: 0 }
+                        };
+                    }
+                    const group = grouped[dateOnly];
+                    group.count++;
+                    group.policeStations.add(app.ps);
+                    group.serviceTypes.add(app.service_type || 'Other');
+                    group.totalPendingDays += app.pending_days;
+
+                    const status = app.current_status || "";
+                    const isPendingPS = status.includes("पूछताछ अधिकारी") ||
+                        status.includes("सत्यापन के लिए लंबित") ||
+                        (!status.includes("पुलिस स्टेशन द्वारा सत्यापन पूर्ण किया गया") && !status.includes("पूछताछ रिपोर्ट समर्पित"));
+                    const isPendingDCRB = status.includes("लंबित डी सी आर बी") || status.includes("लंबित डी.सी.आर.बी.") || status.includes("जमा करने के लिए लंबित डी सी आर बी");
+                    const isPendingLIU = status.includes("लंबित एल आई यू") || status.includes("लंबित एल.आई.यू.") || status.includes("जमा करने के लिए लंबित एल आई यू");
+
+                    if (isPendingPS) group.statusCounts.ps++;
+                    if (isPendingDCRB) group.statusCounts.dcrb++;
+                    if (isPendingLIU) group.statusCounts.liu++;
+                    if (!isPendingPS && !isPendingDCRB && !isPendingLIU) group.statusCounts.other++;
+                });
+
+                const sortedGroupedList = Object.values(grouped).sort((a, b) => {
+                    const partsA = a.date.split('/');
+                    const partsB = b.date.split('/');
+                    const dateA = new Date(partsA[2], partsA[1] - 1, partsA[0]);
+                    const dateB = new Date(partsB[2], partsB[1] - 1, partsB[0]);
+                    return dateA - dateB; // Oldest applied date first for priority
+                });
+
+                const totalGrouped = sortedGroupedList.length;
+                document.getElementById('table-record-count').textContent = `Showing ${totalGrouped} unique pending dates`;
+
+                const totalPages = Math.ceil(totalGrouped / recordsPerPage);
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                const startIndex = (currentPage - 1) * recordsPerPage;
+                const endIndex = Math.min(startIndex + recordsPerPage, totalGrouped);
+
+                for (let i = startIndex; i < endIndex; i++) {
+                    const group = sortedGroupedList[i];
+                    const tr = document.createElement('tr');
+
+                    const avgDays = Math.round(group.totalPendingDays / group.count);
+                    let daysBadge = 'normal';
+                    if (avgDays > 30) daysBadge = 'critical';
+                    else if (avgDays > 15) daysBadge = 'warning';
+
+                    const psList = Array.from(group.policeStations).slice(0, 3).join(', ') + (group.policeStations.size > 3 ? '...' : '');
+                    const serviceList = Array.from(group.serviceTypes).slice(0, 2).join(', ') + (group.serviceTypes.size > 2 ? '...' : '');
+
+                    let breakdownHTML = '';
+                    if (group.statusCounts.ps > 0) breakdownHTML += `<span class="status-pill low" style="margin-right: 0.25rem; font-size:0.7rem;">Thana: ${group.statusCounts.ps}</span>`;
+                    if (group.statusCounts.dcrb > 0) breakdownHTML += `<span class="status-pill medium" style="margin-right: 0.25rem; font-size:0.7rem;">DCRB: ${group.statusCounts.dcrb}</span>`;
+                    if (group.statusCounts.liu > 0) breakdownHTML += `<span class="status-pill high" style="margin-right: 0.25rem; font-size:0.7rem;">LIU: ${group.statusCounts.liu}</span>`;
+                    if (group.statusCounts.other > 0) breakdownHTML += `<span class="status-pill" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); margin-right: 0.25rem; font-size:0.7rem;">SP: ${group.statusCounts.other}</span>`;
+
+                    tr.innerHTML = `
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">${i + 1}</td>
+                        <td style="font-weight: 600;">${group.date}</td>
+                        <td style="text-align: center;"><span class="count-badge danger" style="width: auto; padding: 0 0.5rem; border-radius: 6px;">${group.count}</span></td>
+                        <td>${psList}</td>
+                        <td>${serviceList}</td>
+                        <td style="text-align: center;"><span class="days-badge ${daysBadge}">${avgDays} Days</span></td>
+                        <td><div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">${breakdownHTML}</div></td>
+                        <td style="text-align: center;">
+                            <button class="btn-action" style="padding: 0.25rem 0.5rem; height: auto; font-size: 0.8rem;" onclick="filterToSpecificDate('${group.date}')">
+                                <i class="fa-solid fa-eye"></i> View
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                document.getElementById('pagination-info').textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalGrouped} dates (Page ${currentPage} of ${totalPages})`;
+                renderPaginationControls(totalPages);
+            }
+        }
+
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('pagination-controls');
+            container.innerHTML = '';
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { currentPage--; renderTable(); };
+            container.appendChild(prevBtn);
+
+            // Page numbers (smart pagination, show max 5 pages)
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(totalPages, start + 4);
+            if (end - start < 4) {
+                start = Math.max(1, end - 4);
+            }
+
+            for (let i = start; i <= end; i++) {
+                const btn = document.createElement('button');
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.textContent = i;
+                btn.onclick = () => { currentPage = i; renderTable(); };
+                container.appendChild(btn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => { currentPage++; renderTable(); };
+            container.appendChild(nextBtn);
+        }
+
+        function copyToClipboard(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show notification or micro-animation
+                btn.innerHTML = '<i class="fa-solid fa-check" style="color: var(--success);"></i>';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        function exportCSV() {
+            if (filteredData.length === 0) return;
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "SNo,Application No,Police Station,Service Type,Applied Date,Applicant Name,Pending Days,Current Status\n";
+
+            filteredData.forEach((app, idx) => {
+                const row = [
+                    idx + 1,
+                    `"${app.app_no}"`,
+                    `"${app.ps}"`,
+                    `"${app.service_type || 'Other'}"`,
+                    `"${app.applied_date}"`,
+                    `"${app.applicant_name}"`,
+                    app.pending_days,
+                    `"${(app.current_status || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ayodhya_cctns_pending_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+
+</html>

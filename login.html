@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayodhya CCTNS Nodal Portal - Login</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.35);
+            --accent: #f59e0b; /* Gold accent for police branding */
+            --accent-glow: rgba(245, 158, 11, 0.3);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --danger: #ef4444;
+            --success: #10b981;
+            --glass-blur: blur(16px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.15) 0%, transparent 35%),
+                radial-gradient(circle at 85% 85%, rgba(245, 158, 11, 0.1) 0%, transparent 35%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* Decorative Background Rings */
+        .bg-glow-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.05);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ring-1 {
+            width: 500px;
+            height: 500px;
+            top: -100px;
+            left: -100px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+        }
+        .ring-2 {
+            width: 700px;
+            height: 700px;
+            bottom: -200px;
+            right: -200px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.02) 0%, transparent 70%);
+        }
+
+        /* Login Card */
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 440px;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
+                        0 0 40px rgba(59, 130, 246, 0.05);
+            z-index: 10;
+            position: relative;
+            transform: translateY(0);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: cardLoad 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes cardLoad {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card.shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Success Redirect Animation Class */
+        .login-card.success-out {
+            transform: scale(0.9);
+            opacity: 0;
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
+        /* Police Emblem Header */
+        .emblem-header {
+            text-align: center;
+            margin-bottom: 2.25rem;
+        }
+
+        .police-logo-svg {
+            width: 90px;
+            height: 90px;
+            filter: drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4));
+            margin-bottom: 1rem;
+            animation: logoPulse 3s infinite ease-in-out;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4)); }
+            50% { transform: scale(1.03); filter: drop-shadow(0 6px 20px rgba(245, 158, 11, 0.6)); }
+        }
+
+        .emblem-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #ffffff 30%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.35rem;
+        }
+
+        .emblem-header p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Input Controls */
+        .input-group {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1.25rem;
+            color: var(--text-muted);
+            font-size: 1rem;
+            transition: color 0.3s;
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.85rem 1.25rem 0.85rem 3rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15),
+                        inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(17, 24, 39, 0.85);
+        }
+
+        .form-control:focus + .input-icon {
+            color: var(--primary);
+        }
+
+        /* Toggle Password Visibility */
+        .password-toggle {
+            position: absolute;
+            right: 1.25rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.3s;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-main);
+        }
+
+        /* Captcha Container */
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .captcha-box {
+            background: #fff;
+            border-radius: 8px;
+            height: 46px;
+            width: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #captcha-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-refresh {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Feedback Message Box */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid var(--danger);
+            color: var(--danger);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Button Action */
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.9rem;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Loader Overlay */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease;
+        }
+
+        .success-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .loader-ring {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
+
+        .loader-check {
+            position: absolute;
+            font-size: 2rem;
+            color: var(--success);
+            display: none;
+            animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Hint Card */
+        .hint-card {
+            margin-top: 1.75rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px dashed rgba(255,255,255,0.06);
+            padding-top: 1.25rem;
+        }
+
+        .hint-card code {
+            background: rgba(255,255,255,0.05);
+            padding: 0.15rem 0.35rem;
+            border-radius: 4px;
+            color: var(--accent);
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow-ring ring-1"></div>
+    <div class="bg-glow-ring ring-2"></div>
+
+    <div class="login-card" id="login-panel">
+        <div class="emblem-header">
+            <!-- Uttar Pradesh Police SVG Emblem -->
+            <svg class="police-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Shield Base -->
+                <path d="M50 5 L85 20 C85 60, 50 92, 50 92 C50 92, 15 60, 15 20 Z" fill="none" stroke="#f59e0b" stroke-width="4.5" stroke-linejoin="round"/>
+                <path d="M50 9 L81 22 C81 57, 50 87, 50 87 C50 87, 19 57, 19 22 Z" fill="#0c1220" />
+                
+                <!-- Inner shield structure -->
+                <path d="M50 15 L74 25 C74 50, 50 78, 50 78 C50 78, 26 50, 26 25 Z" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3,2"/>
+                
+                <!-- Double Fish Emblem (Traditional UP Police symbol) -->
+                <path d="M35 48 C35 38, 48 38, 50 43 C52 38, 65 38, 65 48 C65 58, 53 62, 50 62 C47 62, 35 58, 35 48 Z" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+                <path d="M41 48 C41 44, 46 44, 48 46 M59 48 C59 44, 54 44, 52 46" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/>
+                
+                <!-- Bow & Arrow (Dhanush) -->
+                <path d="M34 38 Q50 30 66 38" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="50" y1="33" x2="50" y2="40" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+                
+                <!-- Star Symbol -->
+                <polygon points="50,16 52,21 57,21 53,24 55,29 50,26 45,29 47,24 43,21 48,21" fill="#f59e0b"/>
+            </svg>
+            <h2>अयोध्या पुलिस</h2>
+            <p>UPCOP CCTNS Nodal Portal</p>
+        </div>
+
+        <!-- Error Alert box -->
+        <div class="error-message" id="error-alert">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="error-text">त्रुटि: गलत पासवर्ड अथवा क्रेडेंशियल।</span>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <!-- User ID -->
+            <div class="input-group">
+                <label for="username">Nodal User ID</label>
+                <div class="input-wrapper">
+                    <input type="text" id="username" class="form-control" placeholder="cctns_ayodhya" autocomplete="username" required>
+                    <i class="fa-solid fa-user-shield input-icon"></i>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="input-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="password" class="form-control" placeholder="••••••••••••" autocomplete="current-password" required>
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
+                        <i class="fa-regular fa-eye" id="password-toggle-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Captcha Input and Box -->
+            <div class="input-group">
+                <label for="captcha">Enter Captcha</label>
+                <div class="input-wrapper">
+                    <input type="text" id="captcha" class="form-control" placeholder="Enter Captcha Code" autocomplete="off" style="padding-right: 1rem;" required>
+                    <i class="fa-solid fa-shield-halved input-icon"></i>
+                </div>
+                <div class="captcha-container">
+                    <div class="captcha-box">
+                        <canvas id="captcha-canvas" width="130" height="46"></canvas>
+                    </div>
+                    <button type="button" class="btn-refresh" onclick="generateCaptcha()" title="Refresh Captcha">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-submit">
+                <i class="fa-solid fa-right-to-bracket"></i> Login Securely
+            </button>
+        </form>
+
+        <!-- Hint block for demo -->
+        <div class="hint-card">
+            Portal credentials: Nodal ID <code>cctns_ayodhya</code> & Pass <code>Ayodhya@123</code>
+        </div>
+    </div>
+
+    <!-- Success Loader Overlay -->
+    <div class="success-overlay" id="loader-overlay">
+        <div class="loader-ring" id="loader-ring"></div>
+        <div class="loader-check" id="loader-check">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+    </div>
+
+    <script>
+        let currentCaptchaCode = "";
+
+        // On Load initialization
+        window.onload = function() {
+            generateCaptcha();
+        };
+
+        // Visibility Toggle
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('password-toggle-icon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        // Generating a distorted canvas captcha
+        function generateCaptcha() {
+            const canvas = document.getElementById('captcha-canvas');
+            const ctx = canvas.getContext('2d');
+            const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz'; // removed O,0,I,l
+            let code = '';
+            
+            // clear canvas
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background grid noise lines
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.15)';
+            for (let i = 0; i < 5; i++) {
+                ctx.lineWidth = Math.random() * 2 + 1;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw noise dots
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${Math.random()*100}, ${Math.random()*100}, ${Math.random()*255}, 0.2)`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, Math.random() * 2 + 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Write alphanumeric code with rotation distortion
+            const length = 5;
+            const fontFamilies = ['Courier New', 'Georgia', 'Arial', 'Times New Roman'];
+            
+            for (let i = 0; i < length; i++) {
+                const char = chars.charAt(Math.floor(Math.random() * chars.length));
+                code += char;
+                
+                const fontSize = Math.floor(Math.random() * 6) + 22; // 22px to 28px
+                const fontFamily = fontFamilies[Math.floor(Math.random() * fontFamilies.length)];
+                ctx.font = `bold ${fontSize}px ${fontFamily}`;
+                ctx.fillStyle = `rgb(${Math.floor(Math.random()*100)}, ${Math.floor(Math.random()*80)}, ${Math.floor(Math.random()*150) + 50})`;
+                
+                // Rotations
+                const angle = (Math.random() * 40 - 20) * Math.PI / 180; // -20deg to 20deg
+                const x = 12 + i * 22;
+                const y = 32 + (Math.random() * 6 - 3);
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                ctx.fillText(char, 0, 0);
+                ctx.restore();
+            }
+
+            // Draw a strikeout line
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(10, Math.random() * 20 + 10);
+            ctx.lineTo(canvas.width - 10, Math.random() * 20 + 15);
+            ctx.stroke();
+
+            currentCaptchaCode = code;
+            document.getElementById('captcha').value = ""; // Clear input
+        }
+
+        // Login Handler
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value;
+            const captchaInput = document.getElementById('captcha').value.trim();
+            
+            const errorAlert = document.getElementById('error-alert');
+            const errorText = document.getElementById('error-text');
+            const loginPanel = document.getElementById('login-panel');
+            
+            // Hide error alert initially
+            errorAlert.style.display = 'none';
+
+            // 1. Verify Captcha
+            if (captchaInput.toLowerCase() !== currentCaptchaCode.toLowerCase()) {
+                showError('कैप्चा कोड अमान्य है। कृपया पुनः प्रयास करें।');
+                generateCaptcha();
+                return;
+            }
+
+            // 2. Validate Credentials
+            if (usernameInput === 'cctns_ayodhya' && passwordInput === 'Ayodhya@123') {
+                // Success Flow:
+                loginPanel.classList.add('success-out');
+                
+                const overlay = document.getElementById('loader-overlay');
+                const ring = document.getElementById('loader-ring');
+                const check = document.getElementById('loader-check');
+                
+                overlay.classList.add('active');
+                
+                // Simulate loading then success checkmark then redirect
+                setTimeout(() => {
+                    ring.style.display = 'none';
+                    check.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index02.html';
+                    }, 800);
+                }, 1200);
+
+            } else {
+                // Failure flow:
+                showError('गलत यूजर आईडी अथवा पासवर्ड।');
+                generateCaptcha();
+            }
+        }
+
+        function showError(msg) {
+            const errorAlert = document.getElementById('error-alert');
+            const errorText = document.getElementById('error-text');
+            const loginPanel = document.getElementById('login-panel');
+            
+            errorText.textContent = msg;
+            errorAlert.style.display = 'flex';
+            
+            // Shake animation
+            loginPanel.classList.add('shake');
+            setTimeout(() => {
+                loginPanel.classList.remove('shake');
+            }, 500);
+        }
+    </script>
+</body>
+</html>
